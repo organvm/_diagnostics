@@ -1,0 +1,3 @@
+mdm (0):
+    (none)
+org-plugins [/Library/Application Support/Claude/org-plugins]: directory not found

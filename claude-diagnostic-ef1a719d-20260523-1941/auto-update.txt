@@ -1,0 +1,8 @@
+Current version: 1.8555.2
+Updates enabled: yes
+Channel:         production
+Update URL:      https://api.anthropic.com
+Install type:    macos
+Updater state:   idle
+Pending hours:   0 / enforcement 72h
+Check interval:  every 1h

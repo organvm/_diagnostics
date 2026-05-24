@@ -1,0 +1,18 @@
+# large/binary diagnostic captures — regenerable, do not track
+*.heapsnapshot
+*.zip
+*.tiff
+*.png
+*.pcap
+*.diag
+*.db
+*.db-wal
+claude-netlog-*.json
+console-*.log
+claude.ai-*.log
+extract/
+sysdiagnose-*/extract/
+**/extract/
+
+# OpenCode audit (user already has it; contains token-pattern docs that trip the scanner)
+sysdiagnose-2026-05-21/

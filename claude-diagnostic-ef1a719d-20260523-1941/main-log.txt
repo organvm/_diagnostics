@@ -1,0 +1,48 @@
+2026-05-23 15:37:52 [info] [growthbook] next refresh in 60 min
+2026-05-23 15:37:52 [info] [PluginsFetcher] fetchAutoInstalledPlugins: 0 plugins
+2026-05-23 15:37:52 [info] [RemotePluginManager] Delta: 0 to download, 0 to remove
+2026-05-23 15:37:52 [warn] Blocked permission check {
+  permission: 'background-sync',
+  requestingOrigin: 'https://a.claude.ai/',
+  requestingUrl: 'about:blank',
+  isMainFrame: false,
+  topFrameUrl: 'https://claude.ai/space/46aae6c6-a056-4d12-b176-a4663630b4d4'
+}
+2026-05-23 15:37:52 [warn] [PluginScan] Skipping legacy command "finance:reconciliation" — name collides with skills/ entry
+2026-05-23 15:37:52 [warn] [PluginScan] Skipping legacy command "finance:variance-analysis" — name collides with skills/ entry
+2026-05-23 15:37:52 [info] can_install check completed: 19 extensions checked: [
+  {
+    extensionId: 'ant.dir.ant.anthropic.imessage',
+2026-05-23 15:37:52 [info] [growthbook] loaded 161 features (0 changed)
+2026-05-23 15:37:52 [info] [growthbook] next refresh in 60 min
+2026-05-23 15:37:52 [info] [UtilityProcess stderr] Context7 Documentation MCP Server running on stdio
+2026-05-23 15:37:52 [warn] Blocked permission check {
+  permission: 'background-sync',
+  requestingOrigin: 'https://a.claude.ai/',
+  requestingUrl: 'https://a.claude.ai/isolated-segment.html?v=4e3cd7292f',
+2026-05-23 15:37:53 [info] [UtilityProcess stderr] PDF Tools MCP server running...
+2026-05-23 15:37:53 [info] [UtilityProcess stderr] Chrome Control MCP server running on stdio
+2026-05-23 15:37:53 [info] [UtilityProcess stderr] Secure MCP Filesystem Server running on stdio
+2026-05-23 15:37:53 [warn] [PluginScan] Skipping legacy command "brand-voice:discover-brand" — name collides with skills/ entry
+2026-05-23 15:37:53 [info] [UtilityProcess stderr] [Resources] ListResourcesRequest received
+2026-05-23 15:37:53 [info] [UtilityProcess stderr] Client does not support MCP Roots, using allowed directories set from server args: [ '<home>' ]
+2026-05-23 15:37:53 [info] [UtilityProcess stderr] WASM embedding provider initialized (dim=768, model=<home>/Library/Application Support/Claude/Claude Extensions/ant.dir.gh.ableton.ableton-knowledge/model/snowflake-arctic-embed-m-v1.5-q8_0.gguf)
+2026-05-23 15:37:54 [info] LocalAgentModeSessions.setDraftSessionFolders: 1 folders
+2026-05-23 15:37:54 [info] setDraftSessionFolders: setting 1 folders for draft session
+2026-05-23 15:38:09 [info] [EventLogging] Flushing 13 events
+2026-05-23 15:39:51 [error] Sentry caught: {
+  eventId: 'c21575ec8b554b14b82d095e413a6d0c',
+  type: 'Error',
+  value: 'Script failed to execute, this normally means an error was thrown. Check the renderer console for the error.',
+  stack: undefined
+}
+2026-05-23 15:40:22 [error] Sentry caught: {
+  eventId: '4b8b2ae25046469da5336229fc209b4f',
+  type: 'Error',
+  value: 'Script failed to execute, this normally means an error was thrown. Check the renderer console for the error.',
+  stack: undefined
+}
+2026-05-23 15:40:35 [error] Sentry caught: {
+  eventId: 'b4a9a325781c4ffb97ad6f340ab5ebf4',
+  type: 'Error',
+  value: 'Script failed to execute, this normally means an error was thrown. Check the renderer console for the error.',

@@ -1,0 +1,199 @@
+2026-05-22 21:33:52 [info] [postConnect] Installing SDK: subpath=Users/4jp/Library/Application Support/Claude/claude-code-vm, version=2.1.148
+2026-05-22 21:33:52 [warn] [Keepalive] Already running
+2026-05-22 21:33:57 [info] [startVM] VM already connected
+2026-05-22 21:33:57 [info] [postConnect] Installing SDK: subpath=Users/4jp/Library/Application Support/Claude/claude-code-vm, version=2.1.148
+2026-05-22 21:33:57 [warn] [Keepalive] Already running
+2026-05-22 21:34:18 [info] [startVM] VM already connected
+2026-05-22 21:34:18 [info] [postConnect] Installing SDK: subpath=Users/4jp/Library/Application Support/Claude/claude-code-vm, version=2.1.148
+2026-05-22 21:34:18 [warn] [Keepalive] Already running
+2026-05-22 21:34:33 [info] [startVM] VM already connected
+2026-05-22 21:34:33 [info] [postConnect] Installing SDK: subpath=Users/4jp/Library/Application Support/Claude/claude-code-vm, version=2.1.148
+2026-05-22 21:34:33 [warn] [Keepalive] Already running
+2026-05-22 21:35:04 [info] [startVM] VM already connected
+2026-05-22 21:35:04 [info] [postConnect] Installing SDK: subpath=Users/4jp/Library/Application Support/Claude/claude-code-vm, version=2.1.148
+2026-05-22 21:35:04 [warn] [Keepalive] Already running
+2026-05-22 21:35:07 [info] [startVM] VM already connected
+2026-05-22 21:35:07 [info] [postConnect] Installing SDK: subpath=Users/4jp/Library/Application Support/Claude/claude-code-vm, version=2.1.148
+2026-05-22 21:35:07 [warn] [Keepalive] Already running
+2026-05-22 21:36:09 [info] [VM:shutdown] App quit, stopping VM (instance: df12efc4-8760-4486-9432-4ee9f7b42c7d)...
+2026-05-22 21:36:09 [info] [Keepalive] Stopping
+2026-05-22 21:36:09 [info] [VM] Guest connection changed: false
+2026-05-22 21:36:09 [info] [VM] Guest disconnected during graceful quit, cleanly exiting 0 active processes
+2026-05-22 21:36:13 [warn] [VM] VM stopped
+2026-05-22 21:36:13 [info] [VM:shutdown] Completed in 4366ms
+2026-05-22 21:36:29 [info] [VM] Loading @ant/claude-swift module...
+2026-05-22 21:36:29 [info] [VM] Module loaded successfully
+2026-05-22 21:36:54 [info] [VM:start] Startup complete, total time: 24283ms
+2026-05-23 02:11:27 [info] [startVM] VM already connected
+2026-05-23 02:11:27 [info] [postConnect] Installing SDK: subpath=Users/4jp/Library/Application Support/Claude/claude-code-vm, version=2.1.149
+2026-05-23 02:11:28 [warn] [Keepalive] Already running
+2026-05-23 02:17:02 [info] [startVM] VM already connected
+2026-05-23 02:17:02 [info] [postConnect] Installing SDK: subpath=Users/4jp/Library/Application Support/Claude/claude-code-vm, version=2.1.149
+2026-05-23 02:17:03 [warn] [Keepalive] Already running
+2026-05-23 02:17:09 [info] [startVM] VM already connected
+2026-05-23 02:17:09 [info] [postConnect] Installing SDK: subpath=Users/4jp/Library/Application Support/Claude/claude-code-vm, version=2.1.149
+2026-05-23 02:17:09 [warn] [Keepalive] Already running
+2026-05-23 02:28:33 [info] [startVM] VM already connected
+2026-05-23 02:28:33 [info] [postConnect] Installing SDK: subpath=Users/4jp/Library/Application Support/Claude/claude-code-vm, version=2.1.149
+2026-05-23 02:28:33 [warn] [Keepalive] Already running
+2026-05-23 02:40:02 [info] [startVM] VM already connected
+2026-05-23 02:40:02 [info] [postConnect] Installing SDK: subpath=Users/4jp/Library/Application Support/Claude/claude-code-vm, version=2.1.149
+2026-05-23 02:40:02 [warn] [Keepalive] Already running
+2026-05-23 03:07:44 [info] [startVM] VM already connected
+2026-05-23 03:07:44 [info] [postConnect] Installing SDK: subpath=Users/4jp/Library/Application Support/Claude/claude-code-vm, version=2.1.149
+2026-05-23 03:07:44 [warn] [Keepalive] Already running
+2026-05-23 03:07:59 [info] [startVM] VM already connected
+2026-05-23 03:07:59 [info] [postConnect] Installing SDK: subpath=Users/4jp/Library/Application Support/Claude/claude-code-vm, version=2.1.149
+2026-05-23 03:07:59 [warn] [Keepalive] Already running
+2026-05-23 03:09:47 [info] [startVM] VM already connected
+2026-05-23 03:09:47 [info] [postConnect] Installing SDK: subpath=Users/4jp/Library/Application Support/Claude/claude-code-vm, version=2.1.149
+2026-05-23 03:09:47 [warn] [Keepalive] Already running
+2026-05-23 03:09:47 [info] [startVM] VM already connected
+2026-05-23 03:09:47 [info] [postConnect] Installing SDK: subpath=Users/4jp/Library/Application Support/Claude/claude-code-vm, version=2.1.149
+2026-05-23 03:09:47 [warn] [Keepalive] Already running
+2026-05-23 03:10:15 [info] [vmOneShot] Running: bash [2 arg(s)] as awesome-lucid-ride
+2026-05-23 03:10:15 [info] [vmOneShot] Running: bash [2 arg(s)] as awesome-lucid-ride
+2026-05-23 03:10:15 [info] [vmOneShot] Running: bash [2 arg(s)] as awesome-lucid-ride
+2026-05-23 03:20:03 [info] [startVM] VM already connected
+2026-05-23 03:20:03 [info] [postConnect] Installing SDK: subpath=Users/4jp/Library/Application Support/Claude/claude-code-vm, version=2.1.149
+2026-05-23 03:20:03 [warn] [Keepalive] Already running
+2026-05-23 03:21:03 [info] [vmOneShot] Running: bash [2 arg(s)] as awesome-lucid-ride
+2026-05-23 03:21:03 [info] [vmOneShot] Running: bash [2 arg(s)] as awesome-lucid-ride
+2026-05-23 03:21:03 [info] [vmOneShot] Running: bash [2 arg(s)] as awesome-lucid-ride
+2026-05-23 03:40:32 [info] [startVM] VM already connected
+2026-05-23 03:40:32 [info] [postConnect] Installing SDK: subpath=Users/4jp/Library/Application Support/Claude/claude-code-vm, version=2.1.149
+2026-05-23 03:40:33 [warn] [Keepalive] Already running
+2026-05-23 03:54:16 [info] [startVM] VM already connected
+2026-05-23 03:54:16 [info] [postConnect] Installing SDK: subpath=Users/4jp/Library/Application Support/Claude/claude-code-vm, version=2.1.149
+2026-05-23 03:54:16 [warn] [Keepalive] Already running
+2026-05-23 03:55:38 [info] [startVM] VM already connected
+2026-05-23 03:55:38 [info] [postConnect] Installing SDK: subpath=Users/4jp/Library/Application Support/Claude/claude-code-vm, version=2.1.149
+2026-05-23 03:55:38 [warn] [Keepalive] Already running
+2026-05-23 03:55:44 [info] [startVM] VM already connected
+2026-05-23 03:55:44 [info] [postConnect] Installing SDK: subpath=Users/4jp/Library/Application Support/Claude/claude-code-vm, version=2.1.149
+2026-05-23 03:55:44 [warn] [Keepalive] Already running
+2026-05-23 04:27:02 [info] [startVM] VM already connected
+2026-05-23 04:27:02 [info] [postConnect] Installing SDK: subpath=Users/4jp/Library/Application Support/Claude/claude-code-vm, version=2.1.149
+2026-05-23 04:27:02 [warn] [Keepalive] Already running
+2026-05-23 04:37:08 [info] [startVM] VM already connected
+2026-05-23 04:37:08 [info] [postConnect] Installing SDK: subpath=Users/4jp/Library/Application Support/Claude/claude-code-vm, version=2.1.149
+2026-05-23 04:37:08 [warn] [Keepalive] Already running
+2026-05-23 04:38:19 [info] [startVM] VM already connected
+2026-05-23 04:38:19 [info] [postConnect] Installing SDK: subpath=Users/4jp/Library/Application Support/Claude/claude-code-vm, version=2.1.149
+2026-05-23 04:38:19 [warn] [Keepalive] Already running
+2026-05-23 04:38:25 [info] [startVM] VM already connected
+2026-05-23 04:38:25 [info] [postConnect] Installing SDK: subpath=Users/4jp/Library/Application Support/Claude/claude-code-vm, version=2.1.149
+2026-05-23 04:38:25 [warn] [Keepalive] Already running
+2026-05-23 04:38:27 [info] [startVM] VM already connected
+2026-05-23 04:38:27 [info] [postConnect] Installing SDK: subpath=Users/4jp/Library/Application Support/Claude/claude-code-vm, version=2.1.149
+2026-05-23 04:38:27 [warn] [Keepalive] Already running
+2026-05-23 04:46:46 [info] [startVM] VM already connected
+2026-05-23 04:46:46 [info] [postConnect] Installing SDK: subpath=Users/4jp/Library/Application Support/Claude/claude-code-vm, version=2.1.149
+2026-05-23 04:46:46 [warn] [Keepalive] Already running
+2026-05-23 04:46:48 [info] [startVM] VM already connected
+2026-05-23 04:46:48 [info] [postConnect] Installing SDK: subpath=Users/4jp/Library/Application Support/Claude/claude-code-vm, version=2.1.149
+2026-05-23 04:46:48 [warn] [Keepalive] Already running
+2026-05-23 04:46:53 [info] [startVM] VM already connected
+2026-05-23 04:46:53 [info] [postConnect] Installing SDK: subpath=Users/4jp/Library/Application Support/Claude/claude-code-vm, version=2.1.149
+2026-05-23 04:46:53 [warn] [Keepalive] Already running
+2026-05-23 04:46:56 [info] [startVM] VM already connected
+2026-05-23 04:46:56 [info] [postConnect] Installing SDK: subpath=Users/4jp/Library/Application Support/Claude/claude-code-vm, version=2.1.149
+2026-05-23 04:46:56 [warn] [Keepalive] Already running
+2026-05-23 04:46:57 [info] [startVM] VM already connected
+2026-05-23 04:46:57 [info] [postConnect] Installing SDK: subpath=Users/4jp/Library/Application Support/Claude/claude-code-vm, version=2.1.149
+2026-05-23 04:46:57 [warn] [Keepalive] Already running
+2026-05-23 05:44:28 [info] [startVM] VM already connected
+2026-05-23 05:44:28 [info] [postConnect] Installing SDK: subpath=Users/4jp/Library/Application Support/Claude/claude-code-vm, version=2.1.149
+2026-05-23 05:44:29 [warn] [Keepalive] Already running
+2026-05-23 05:44:32 [info] [startVM] VM already connected
+2026-05-23 05:44:32 [info] [postConnect] Installing SDK: subpath=Users/4jp/Library/Application Support/Claude/claude-code-vm, version=2.1.149
+2026-05-23 05:44:32 [warn] [Keepalive] Already running
+2026-05-23 05:45:02 [info] [startVM] VM already connected
+2026-05-23 05:45:02 [info] [postConnect] Installing SDK: subpath=Users/4jp/Library/Application Support/Claude/claude-code-vm, version=2.1.149
+2026-05-23 05:45:02 [warn] [Keepalive] Already running
+2026-05-23 05:48:03 [info] [startVM] VM already connected
+2026-05-23 05:48:03 [info] [postConnect] Installing SDK: subpath=Users/4jp/Library/Application Support/Claude/claude-code-vm, version=2.1.149
+2026-05-23 05:48:03 [warn] [Keepalive] Already running
+2026-05-23 05:48:29 [info] [startVM] VM already connected
+2026-05-23 05:48:29 [info] [postConnect] Installing SDK: subpath=Users/4jp/Library/Application Support/Claude/claude-code-vm, version=2.1.149
+2026-05-23 05:48:29 [warn] [Keepalive] Already running
+2026-05-23 05:48:45 [info] [startVM] VM already connected
+2026-05-23 05:48:45 [info] [postConnect] Installing SDK: subpath=Users/4jp/Library/Application Support/Claude/claude-code-vm, version=2.1.149
+2026-05-23 05:48:45 [warn] [Keepalive] Already running
+2026-05-23 05:50:44 [info] [startVM] VM already connected
+2026-05-23 05:50:44 [info] [postConnect] Installing SDK: subpath=Users/4jp/Library/Application Support/Claude/claude-code-vm, version=2.1.149
+2026-05-23 05:50:44 [warn] [Keepalive] Already running
+2026-05-23 05:51:52 [info] [startVM] VM already connected
+2026-05-23 05:51:52 [info] [postConnect] Installing SDK: subpath=Users/4jp/Library/Application Support/Claude/claude-code-vm, version=2.1.149
+2026-05-23 05:51:52 [warn] [Keepalive] Already running
+2026-05-23 06:07:02 [info] [startVM] VM already connected
+2026-05-23 06:07:02 [info] [postConnect] Installing SDK: subpath=Users/4jp/Library/Application Support/Claude/claude-code-vm, version=2.1.149
+2026-05-23 06:07:02 [warn] [Keepalive] Already running
+2026-05-23 06:07:07 [info] [startVM] VM already connected
+2026-05-23 06:07:07 [info] [postConnect] Installing SDK: subpath=Users/4jp/Library/Application Support/Claude/claude-code-vm, version=2.1.149
+2026-05-23 06:07:07 [warn] [Keepalive] Already running
+2026-05-23 06:12:07 [info] [startVM] VM already connected
+2026-05-23 06:12:07 [info] [postConnect] Installing SDK: subpath=Users/4jp/Library/Application Support/Claude/claude-code-vm, version=2.1.149
+2026-05-23 06:12:07 [warn] [Keepalive] Already running
+2026-05-23 06:12:08 [info] [startVM] VM already connected
+2026-05-23 06:12:08 [info] [postConnect] Installing SDK: subpath=Users/4jp/Library/Application Support/Claude/claude-code-vm, version=2.1.149
+2026-05-23 06:12:08 [warn] [Keepalive] Already running
+2026-05-23 06:12:21 [info] [vmOneShot] Running: bash [2 arg(s)] as eager-exciting-cannon
+2026-05-23 06:12:21 [info] [vmOneShot] Running: bash [2 arg(s)] as eager-exciting-cannon
+2026-05-23 06:12:21 [info] [vmOneShot] Running: bash [2 arg(s)] as eager-exciting-cannon
+2026-05-23 06:19:50 [info] [vmOneShot] Running: bash [2 arg(s)] as eager-exciting-cannon
+2026-05-23 06:38:21 [info] [startVM] VM already connected
+2026-05-23 06:38:21 [info] [postConnect] Installing SDK: subpath=Users/4jp/Library/Application Support/Claude/claude-code-vm, version=2.1.149
+2026-05-23 06:38:22 [warn] [Keepalive] Already running
+2026-05-23 07:09:24 [info] [startVM] VM already connected
+2026-05-23 07:09:24 [info] [postConnect] Installing SDK: subpath=Users/4jp/Library/Application Support/Claude/claude-code-vm, version=2.1.149
+2026-05-23 07:09:25 [warn] [Keepalive] Already running
+2026-05-23 07:11:57 [info] [startVM] VM already connected
+2026-05-23 07:11:57 [info] [postConnect] Installing SDK: subpath=Users/4jp/Library/Application Support/Claude/claude-code-vm, version=2.1.149
+2026-05-23 07:11:57 [warn] [Keepalive] Already running
+2026-05-23 13:40:10 [info] [startVM] VM already connected
+2026-05-23 13:40:10 [info] [postConnect] Installing SDK: subpath=Users/4jp/Library/Application Support/Claude/claude-code-vm, version=2.1.149
+2026-05-23 13:40:11 [warn] [Keepalive] Already running
+2026-05-23 13:40:12 [info] [startVM] VM already connected
+2026-05-23 13:40:12 [info] [postConnect] Installing SDK: subpath=Users/4jp/Library/Application Support/Claude/claude-code-vm, version=2.1.149
+2026-05-23 13:40:12 [warn] [Keepalive] Already running
+2026-05-23 13:49:46 [info] [startVM] VM already connected
+2026-05-23 13:49:46 [info] [postConnect] Installing SDK: subpath=Users/4jp/Library/Application Support/Claude/claude-code-vm, version=2.1.149
+2026-05-23 13:49:47 [warn] [Keepalive] Already running
+2026-05-23 13:50:33 [info] [startVM] VM already connected
+2026-05-23 13:50:33 [info] [postConnect] Installing SDK: subpath=Users/4jp/Library/Application Support/Claude/claude-code-vm, version=2.1.149
+2026-05-23 13:50:34 [warn] [Keepalive] Already running
+2026-05-23 13:52:05 [info] [startVM] VM already connected
+2026-05-23 13:52:05 [info] [postConnect] Installing SDK: subpath=Users/4jp/Library/Application Support/Claude/claude-code-vm, version=2.1.149
+2026-05-23 13:52:05 [warn] [Keepalive] Already running
+2026-05-23 13:59:26 [info] [startVM] VM already connected
+2026-05-23 13:59:26 [info] [postConnect] Installing SDK: subpath=Users/4jp/Library/Application Support/Claude/claude-code-vm, version=2.1.149
+2026-05-23 13:59:26 [warn] [Keepalive] Already running
+2026-05-23 14:11:32 [info] [startVM] VM already connected
+2026-05-23 14:11:32 [info] [postConnect] Installing SDK: subpath=Users/4jp/Library/Application Support/Claude/claude-code-vm, version=2.1.149
+2026-05-23 14:11:32 [info] [startVM] VM already connected
+2026-05-23 14:11:32 [info] [postConnect] Installing SDK: subpath=Users/4jp/Library/Application Support/Claude/claude-code-vm, version=2.1.149
+2026-05-23 14:11:32 [warn] [Keepalive] Already running
+2026-05-23 14:11:32 [warn] [Keepalive] Already running
+2026-05-23 14:30:53 [info] [startVM] VM already connected
+2026-05-23 14:30:53 [info] [postConnect] Installing SDK: subpath=Users/4jp/Library/Application Support/Claude/claude-code-vm, version=2.1.149
+2026-05-23 14:30:56 [warn] [Keepalive] Already running
+2026-05-23 14:31:38 [info] [startVM] VM already connected
+2026-05-23 14:31:38 [info] [postConnect] Installing SDK: subpath=Users/4jp/Library/Application Support/Claude/claude-code-vm, version=2.1.149
+2026-05-23 14:31:38 [warn] [Keepalive] Already running
+2026-05-23 14:52:02 [info] [startVM] VM already connected
+2026-05-23 14:52:02 [info] [postConnect] Installing SDK: subpath=Users/4jp/Library/Application Support/Claude/claude-code-vm, version=2.1.149
+2026-05-23 14:52:03 [warn] [Keepalive] Already running
+2026-05-23 14:52:36 [info] [vmOneShot] Running: bash [2 arg(s)] as admiring-gifted-euler
+2026-05-23 14:52:36 [info] [vmOneShot] Running: bash [2 arg(s)] as admiring-gifted-euler
+2026-05-23 14:52:36 [info] [vmOneShot] Running: bash [2 arg(s)] as admiring-gifted-euler
+2026-05-23 14:53:32 [info] [vmOneShot] Running: bash [2 arg(s)] as admiring-gifted-euler
+2026-05-23 14:57:02 [info] [startVM] VM already connected
+2026-05-23 14:57:02 [info] [postConnect] Installing SDK: subpath=Users/4jp/Library/Application Support/Claude/claude-code-vm, version=2.1.149
+2026-05-23 14:57:02 [warn] [Keepalive] Already running
+2026-05-23 15:36:33 [info] [startVM] VM already connected
+2026-05-23 15:36:33 [info] [postConnect] Installing SDK: subpath=Users/4jp/Library/Application Support/Claude/claude-code-vm, version=2.1.149
+2026-05-23 15:36:33 [warn] [Keepalive] Already running
+2026-05-23 15:37:52 [info] [startVM] VM already connected
+2026-05-23 15:37:52 [info] [postConnect] Installing SDK: subpath=Users/4jp/Library/Application Support/Claude/claude-code-vm, version=2.1.149
+2026-05-23 15:37:52 [warn] [Keepalive] Already running

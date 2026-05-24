@@ -1,0 +1,23 @@
+{
+  "bundleId": "ef1a719d-3f7d-4d49-a748-dcbb60521168",
+  "installId": "a9eb142a-6ac1-4206-9be6-9cd036c5b4ba",
+  "appVersion": "1.8555.2",
+  "platform": "darwin",
+  "arch": "arm64",
+  "createdAt": "2026-05-23T19:41:03.874Z",
+  "sections": [
+    "system-info",
+    "deployment-mode",
+    "config",
+    "mcp-servers",
+    "provider-status",
+    "reachability",
+    "auto-update",
+    "main-log",
+    "claude-ai-web-log",
+    "mcp-log",
+    "custom3p-setup-log",
+    "cowork-vm-log",
+    "dmp-names"
+  ]
+}

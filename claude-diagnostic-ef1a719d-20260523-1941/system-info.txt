@@ -1,0 +1,5 @@
+App version:  1.8555.2
+Platform:     darwin (arm64)
+OS version:   26.5.0 / 25.5.0
+CPU:          Apple M5 (10 cores)
+Memory:       16 GB total, 0 GB free

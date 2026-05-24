@@ -1,0 +1,4 @@
+Source: local
+
+inferenceProvider = "anthropic"
+modelDiscoveryEnabled = true

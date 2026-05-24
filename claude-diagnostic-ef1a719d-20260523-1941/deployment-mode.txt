@@ -1,0 +1,4 @@
+Effective mode:          1P
+Persisted mode choice:   1p
+inferenceProvider set:   yes
+Bootstrap configured:    no
