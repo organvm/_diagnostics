@@ -1,12 +1,15 @@
-# The diagnostics loop — `memdiag`
+# The diagnostics toolkit — `sysdiag` + `memdiag`
 
 **Built:** 2026-05-25 · **Author:** Claude Code (diagnostics session)
 **Derives from:** `sysdiagnose-2026-05-21/SYNTHESIS-2026-05-23.md`
 **Constraint:** read-only, on-demand, **no LaunchAgent** (Rule #9 HARD)
 
-This is the executable form of the ideal articulated in the synthesis: a diagnostics
-system is not a report — it is a **closed, read-only, constraint-fitted loop** whose
-primary act is *reconciliation against live state*, not the reading of stale reports.
+Two tools, one design law. **`sysdiag`** is the full Swiss-army knife — every major
+subsystem in one read-only sweep. **`memdiag`** is the memory-focused loop it grew from
+(kept for its richer memory `verdict`/`close` semantics). Both obey the same constraint
+articulated in the synthesis: a diagnostics system is not a report — it is a **closed,
+read-only, constraint-fitted loop** whose primary act is *reconciliation against live
+state*, not the reading of stale reports.
 
 ```
    SENSE ──► STRATIFY ──► RECONCILE ──► LOCATE ──► CLOSE ──┐
@@ -14,6 +17,32 @@ primary act is *reconciliation against live state*, not the reading of stale rep
      ▲────────────────────────────────────────────────────-┘
               each pass shortens the next autopsy gap toward zero
 ```
+
+## `sysdiag` — the full knife
+
+One tool, eight domains, each a real probe (no stubs). Every domain leads with its
+*trustworthy* headline metric and carries a severity glyph (`✓` healthy / `△` moderate /
+`✗` critical).
+
+| Command | Covers | Headline signal |
+|---|---|---|
+| `sysdiag doctor` | **all domains** — one-screen verdict dashboard | worst-of severity |
+| `sysdiag mem` | pressure, swap, top RSS | `memory_pressure` free % |
+| `sysdiag cpu` | load/core, thermal throttle, top CPU | load ÷ ncpu |
+| `sysdiag disk` | capacity, APFS snapshots, largest `$HOME` dirs | % used |
+| `sysdiag net` | online check, route, IPs, DNS, listening ports, Wi-Fi | gateway reachability |
+| `sysdiag proc` | census, zombies, runaways (>80%), per-user | runaway count |
+| `sysdiag power` | battery %/health, thermal, sleep assertions | thermal level |
+| `sysdiag logs` | crashes (24h), panics (7d), **pressure**-kills (6h, idle-reaps excluded) | panic/crash count |
+| `sysdiag hw` | chip, RAM, OS, uptime, hardware inventory | — |
+| `sysdiag snap [--quiet]` | full-state capture → markdown + JSON sidecar (`sys-<ISO>.json`) | — |
+| `sysdiag reconcile [a b]` | full-system delta across two captures — **the delta is the finding** | — |
+| `sysdiag watch [thresh]` | sub-ms non-resident memory trigger (shell-prompt hook) | — |
+| `sysdiag list` | snapshot inventory | — |
+
+Same loop, wider aperture. `snap` writes one JSON object spanning all domains (each with
+its `sev`), so `reconcile` shows the whole machine's drift in one table — the
+generalization of memdiag's single-domain reconcile.
 
 ## Why it exists
 
@@ -66,6 +95,7 @@ It throttles to at most once per 60s and stays silent while healthy.
 
 | Path | Role |
 |---|---|
+| `~/.local/bin/sysdiag` | **the full knife** — 8-domain doctor + snap/reconcile/watch/list |
 | `~/.local/bin/mem-pressure-snapshot` | SENSE primitive — dual-emits markdown + JSON sidecar |
 | `~/.local/bin/memdiag` | the loop orchestrator (verdict / reconcile / loop / watch / close / list) |
 | `~/.local/bin/memdiag-watch.zsh` | opt-in non-resident prompt-hook sampler |
