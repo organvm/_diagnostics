@@ -1,0 +1,330 @@
+#!/usr/bin/env bash
+# sysdiag — a read-only, on-demand system-diagnostics multitool for macOS.
+#
+# The Swiss-army evolution of memdiag: one tool, every major subsystem, each a
+# real probe (no stubs). Same loop discipline that memdiag established —
+#   SENSE → STRATIFY → RECONCILE → LOCATE → CLOSE
+# generalized across memory, CPU, disk, network, processes, power, and logs.
+#
+# HARD CONSTRAINTS (Rule #9): NO LaunchAgent, NO daemon, NO mutation. Every
+# subcommand is read-only and on-demand. Probes that need sudo degrade
+# gracefully rather than failing. Each domain leads with its *trustworthy*
+# headline metric, not its loudest signal.
+#
+#   sysdiag doctor              full sweep — per-subsystem verdict dashboard
+#   sysdiag mem | cpu | disk | net | proc | power | logs | hw
+#                               one domain: verdict row + detail
+#   sysdiag snap [--quiet]      capture full state → markdown + JSON sidecar
+#   sysdiag reconcile [a b]     delta between two captures (the finding)
+#   sysdiag watch [threshold]   sub-ms non-resident trigger (memory headline)
+#   sysdiag list                captured snapshots
+#   sysdiag help
+set -uo pipefail
+
+SNAP_DIR="$HOME/.claude/projects/-Users-4jp-Workspace--diagnostics/snapshots"
+TO="$(command -v timeout || command -v gtimeout || true)"
+runto() { if [[ -n "$TO" ]]; then "$TO" "$@"; else shift; "$@"; fi; }
+
+WORST=0
+bump() { (( $1 > WORST )) && WORST=$1; return 0; }
+glyph() { case "$1" in 0) printf '✓';; 1) printf '△';; *) printf '✗';; esac; }
+sevword() { case "$1" in 0) printf 'HEALTHY';; 1) printf 'MODERATE';; *) printf 'CRITICAL';; esac; }
+# float compare: fcmp A OP B  → exit 0 if true. OP in < <= > >=
+fcmp() { awk "BEGIN{exit !($1 $2 $3)}"; }
+
+# ── per-domain globals (set by gather_*) ────────────────────────────────
+MEM_FREE=0 MEM_SWU=0 MEM_SWT=0 MEM_TOP="" MEM_SEV=0
+CPU_L1=0 CPU_L5=0 CPU_L15=0 NCPU=1 CPU_RATIO=0 CPU_THR=100 CPU_TOP="" CPU_SEV=0
+DISK_PCT=0 DISK_AVAIL="" DISK_SNAPS=0 DISK_SEV=0
+NET_ONLINE=0 NET_GW="" NET_IF="" NET_IP="" NET_LISTEN=0 NET_DNS="" NET_SSID="" NET_SEV=0
+PROC_TOTAL=0 PROC_ZOMBIE=0 PROC_RUNAWAY=0 PROC_TOPCPU="" PROC_SEV=0
+PWR_BATT="" PWR_PCT="" PWR_STATE="" PWR_THERMW="nominal" PWR_ASSERT=0 PWR_CAFF=0 PWR_SEV=0
+LOG_CRASH=0 LOG_JETSAM=0 LOG_PANIC=0 LOG_SHUT="" LOG_SEV=0
+HW_MODEL="" HW_CHIP="" HW_RAM=0 HW_OS="" HW_UP=""
+
+# ── helpers to read top processes ───────────────────────────────────────
+top_rss()  { ps -A -o rss=,comm= -m 2>/dev/null | awk 'NR==1{printf "%s (%dMB)", $2, int($1/1024)}'; }
+top_cpu()  { ps -A -o pcpu=,comm= -r 2>/dev/null | awk 'NR==1{printf "%s (%s%%CPU)", $2, $1}'; }
+
+# ── GATHER ──────────────────────────────────────────────────────────────
+gather_mem() {
+  MEM_FREE="$(memory_pressure 2>/dev/null | awk -F': ' '/free percentage/{gsub(/[^0-9]/,"",$2);print $2+0}')"; MEM_FREE="${MEM_FREE:-0}"
+  local sw; sw="$(sysctl -n vm.swapusage 2>/dev/null)"
+  MEM_SWU="$(printf '%s' "$sw" | sed -E 's/.*used = ([0-9.]+)M.*/\1/')"; MEM_SWU="${MEM_SWU:-0}"
+  MEM_SWT="$(printf '%s' "$sw" | sed -E 's/total = ([0-9.]+)M.*/\1/')"; MEM_SWT="${MEM_SWT:-0}"
+  MEM_TOP="$(top_rss)"
+  if   (( MEM_FREE >= 40 )); then MEM_SEV=0; elif (( MEM_FREE >= 20 )); then MEM_SEV=1; else MEM_SEV=2; fi
+  bump $MEM_SEV
+}
+gather_cpu() {
+  NCPU="$(sysctl -n hw.ncpu 2>/dev/null)"; NCPU="${NCPU:-1}"
+  read -r CPU_L1 CPU_L5 CPU_L15 < <(sysctl -n vm.loadavg 2>/dev/null | awk '{print $2, $3, $4}')
+  CPU_L1="${CPU_L1:-0}"; CPU_L5="${CPU_L5:-0}"; CPU_L15="${CPU_L15:-0}"
+  CPU_RATIO="$(awk "BEGIN{printf \"%.2f\", $CPU_L1/$NCPU}")"
+  CPU_THR="$(pmset -g therm 2>/dev/null | awk -F'= *' '/CPU_Speed_Limit/{print $2+0}')"; CPU_THR="${CPU_THR:-100}"
+  CPU_TOP="$(top_cpu)"
+  if   fcmp "$CPU_RATIO" '<' 0.7; then CPU_SEV=0; elif fcmp "$CPU_RATIO" '<' 1.0; then CPU_SEV=1; else CPU_SEV=2; fi
+  (( CPU_THR < 100 )) && bump 1 && (( CPU_SEV < 1 )) && CPU_SEV=1
+  bump $CPU_SEV
+}
+gather_disk() {
+  read -r DISK_PCT DISK_AVAIL < <(df -h /System/Volumes/Data 2>/dev/null | awk 'NR==2{gsub(/%/,"",$5);print $5+0, $4}')
+  DISK_PCT="${DISK_PCT:-0}"
+  DISK_SNAPS="$(tmutil listlocalsnapshots / 2>/dev/null | grep -c 'com.apple')"
+  if   (( DISK_PCT < 80 )); then DISK_SEV=0; elif (( DISK_PCT < 90 )); then DISK_SEV=1; else DISK_SEV=2; fi
+  bump $DISK_SEV
+}
+gather_net() {
+  NET_IF="$(route -n get default 2>/dev/null | awk '/interface:/{print $2}')"
+  NET_GW="$(route -n get default 2>/dev/null | awk '/gateway:/{print $2}')"
+  [[ -n "$NET_IF" ]] && NET_IP="$(ipconfig getifaddr "$NET_IF" 2>/dev/null)"
+  if runto 3 ping -c1 -t2 1.1.1.1 >/dev/null 2>&1; then NET_ONLINE=1; else NET_ONLINE=0; fi
+  NET_LISTEN="$(netstat -an -p tcp 2>/dev/null | grep -c LISTEN)"
+  NET_DNS="$(scutil --dns 2>/dev/null | awk '/nameserver\[0\]/{print $3; exit}')"
+  NET_SSID="$(networksetup -getairportnetwork "${NET_IF:-en0}" 2>/dev/null | sed -n 's/^Current Wi-Fi Network: //p')"
+  if (( NET_ONLINE == 1 )); then NET_SEV=0; else NET_SEV=2; fi
+  bump $NET_SEV
+}
+gather_proc() {
+  PROC_TOTAL="$(ps -A 2>/dev/null | wc -l | tr -d ' ')"; PROC_TOTAL=$(( PROC_TOTAL > 0 ? PROC_TOTAL-1 : 0 ))
+  PROC_ZOMBIE="$(ps -axo stat= 2>/dev/null | grep -c '^Z')"
+  PROC_RUNAWAY="$(ps -A -o pcpu= 2>/dev/null | awk '$1>80' | wc -l | tr -d ' ')"
+  PROC_TOPCPU="$(top_cpu)"
+  PROC_SEV=0
+  (( PROC_ZOMBIE > 0 )) && PROC_SEV=1
+  (( PROC_RUNAWAY > 0 )) && PROC_SEV=1
+  (( PROC_RUNAWAY > 2 )) && PROC_SEV=2
+  bump $PROC_SEV
+}
+gather_power() {
+  local b; b="$(pmset -g batt 2>/dev/null)"
+  if printf '%s' "$b" | grep -q InternalBattery; then
+    PWR_BATT="present"
+    PWR_PCT="$(printf '%s' "$b" | grep -oE '[0-9]+%' | head -1 | tr -d '%')"
+    PWR_STATE="$(printf '%s' "$b" | sed -nE 's/.*[0-9]+%; ([a-z ]+);.*/\1/p' | head -1)"
+    [[ -z "$PWR_STATE" ]] && PWR_STATE="$(printf '%s' "$b" | grep -oE 'charged|charging|discharging|finishing charge' | head -1)"
+  else
+    PWR_BATT="none"; PWR_STATE="AC"
+  fi
+  gather_cpu_thr_only
+  PWR_ASSERT="$(pmset -g assertions 2>/dev/null | awk '/PreventUserIdleSystemSleep|PreventSystemSleep/ && / 1$/' | wc -l | tr -d ' ')"
+  PWR_CAFF="$(pgrep -x caffeinate >/dev/null 2>&1 && echo 1 || echo 0)"
+  PWR_SEV=0
+  [[ "$PWR_THERMW" != "nominal" ]] && PWR_SEV=1
+  bump $PWR_SEV
+}
+gather_cpu_thr_only() {
+  local thr; thr="$(pmset -g therm 2>/dev/null | awk -F'= *' '/CPU_Speed_Limit/{print $2+0}')"
+  if [[ -n "$thr" && "$thr" -lt 100 ]]; then PWR_THERMW="throttled ${thr}%"; else PWR_THERMW="nominal"; fi
+}
+gather_logs() {
+  local d1="$HOME/Library/Logs/DiagnosticReports" d2="/Library/Logs/DiagnosticReports"
+  LOG_CRASH="$( { find "$d1" "$d2" -maxdepth 1 -type f \( -name '*.ips' -o -name '*.crash' \) -mtime -1 2>/dev/null; } | grep -vci panic )"
+  LOG_PANIC="$( { find "$d1" "$d2" -maxdepth 1 -type f -iname '*panic*' -mtime -7 2>/dev/null; } | wc -l | tr -d ' ')"
+  # Count only genuine memory-PRESSURE kills — exclude benign idle-exit reaps
+  # (the 2026-05-23 synthesis: idle reaps dominate and are not pathological).
+  LOG_JETSAM="$(runto 8 log show --predicate '(eventMessage CONTAINS[c] "jetsam" OR eventMessage CONTAINS "memorystatus") AND eventMessage CONTAINS[c] "kill"' --last 6h --style compact 2>/dev/null | grep -ivE 'noninteractively|Ignoring jetsam update|Set jetsam priority|idle' | grep -ic 'kill')"
+  LOG_JETSAM="${LOG_JETSAM:-0}"
+  LOG_SHUT="$(runto 8 pmset -g log 2>/dev/null | grep -iE 'shutdown cause' | tail -1 | grep -oE '\-?[0-9]+ *$' | tr -d ' ')"
+  LOG_SEV=0
+  (( LOG_CRASH > 0 )) && LOG_SEV=1
+  (( LOG_PANIC > 0 )) && LOG_SEV=2
+  bump $LOG_SEV
+}
+gather_hw() {
+  HW_MODEL="$(sysctl -n hw.model 2>/dev/null)"
+  HW_CHIP="$(sysctl -n machdep.cpu.brand_string 2>/dev/null)"
+  HW_RAM="$(sysctl -n hw.memsize 2>/dev/null | awk '{print int($1/1073741824)}')"
+  HW_OS="$(sw_vers -productName 2>/dev/null) $(sw_vers -productVersion 2>/dev/null)"
+  HW_UP="$(uptime 2>/dev/null | sed -E 's/.*up ([^,]+,?[^,]*),[ ]+[0-9]+ user.*/\1/' | sed 's/^ *//')"
+}
+gather_all() { gather_hw; gather_mem; gather_cpu; gather_disk; gather_net; gather_proc; gather_power; gather_logs; }
+
+# ── dashboard rows ──────────────────────────────────────────────────────
+row() { printf '  %s %-6s %s\n' "$(glyph "$1")" "$2" "$3"; }
+rows() {
+  row "$MEM_SEV"  "MEM"  "free ${MEM_FREE}%   swap ${MEM_SWU%.*}/${MEM_SWT%.*}M   top: ${MEM_TOP}"
+  row "$CPU_SEV"  "CPU"  "load ${CPU_L1} /${NCPU}c (${CPU_RATIO}/core)   throttle: $([[ $CPU_THR -lt 100 ]] && echo "${CPU_THR}%" || echo none)   top: ${CPU_TOP}"
+  row "$DISK_SEV" "DISK" "${DISK_PCT}% used   ${DISK_AVAIL} free   ${DISK_SNAPS} APFS snapshot(s)"
+  row "$NET_SEV"  "NET"  "$([[ $NET_ONLINE -eq 1 ]] && echo online || echo OFFLINE)   if ${NET_IF:-?} ${NET_IP:-}   gw ${NET_GW:-?}   ${NET_LISTEN} listening   dns ${NET_DNS:-?}${NET_SSID:+   wifi:$NET_SSID}"
+  row "$PROC_SEV" "PROC" "${PROC_TOTAL} procs   ${PROC_ZOMBIE} zombie   ${PROC_RUNAWAY} runaway(>80%)   top: ${PROC_TOPCPU}"
+  row "$PWR_SEV"  "PWR"  "$([[ $PWR_BATT == present ]] && echo "battery ${PWR_PCT}% (${PWR_STATE})" || echo "desktop/AC")   thermal ${PWR_THERMW}   ${PWR_ASSERT} sleep-assertion(s)$([[ $PWR_CAFF -eq 1 ]] && echo " +caffeinate")"
+  row "$LOG_SEV"  "LOGS" "24h: ${LOG_CRASH} crash · ${LOG_PANIC} panic · ${LOG_JETSAM} pressure-kill(6h)   last shutdown cause: ${LOG_SHUT:-n/a}"
+}
+
+header() {
+  printf '\n  sysdiag · %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  printf '  %s · %sGB · %s · up %s\n' "${HW_CHIP:-?}" "${HW_RAM:-?}" "${HW_OS:-?}" "${HW_UP:-?}"
+  printf '  ──────────────────────────────────────────────────────────────\n'
+}
+
+cmd_doctor() {
+  gather_all
+  header
+  rows
+  printf '  ──────────────────────────────────────────────────────────────\n'
+  printf '  verdict: %s %s\n\n' "$(glyph "$WORST")" "$(sevword "$WORST")"
+}
+
+# ── per-domain detail ───────────────────────────────────────────────────
+sec() { printf '\n  %s\n  %s\n' "$1" "$(printf '%.0s─' {1..50})"; }
+
+detail() {
+  local d="$1"
+  case "$d" in
+    mem)
+      gather_hw; gather_mem; header; rows | grep ' MEM '
+      sec "vm_stat"; vm_stat 2>/dev/null | head -10 | sed 's/^/    /'
+      sec "top 12 by resident memory"
+      ps -A -o rss=,pcpu=,comm= -m 2>/dev/null | head -12 | awk '{printf "    %7dMB  %5s%%  %s\n",int($1/1024),$2,$3}'
+      ;;
+    cpu)
+      gather_hw; gather_cpu; header; rows | grep ' CPU '
+      sec "load average (1·5·15)"; printf '    %s  %s  %s   across %s cores\n' "$CPU_L1" "$CPU_L5" "$CPU_L15" "$NCPU"
+      sec "thermal"; pmset -g therm 2>/dev/null | sed 's/^/    /' | head -8 || printf '    nominal (no throttle reported)\n'
+      sec "top 12 by CPU"
+      ps -A -o pcpu=,rss=,comm= -r 2>/dev/null | head -12 | awk '{printf "    %5s%%  %7dMB  %s\n",$1,int($2/1024),$3}'
+      ;;
+    disk)
+      gather_hw; gather_disk; header; rows | grep ' DISK '
+      sec "volumes"; df -h 2>/dev/null | awk 'NR==1||/\/dev\/disk/' | sed 's/^/    /'
+      sec "APFS local snapshots (reclaimable space)"; tmutil listlocalsnapshots / 2>/dev/null | sed 's/^/    /' | head -12 || printf '    (none)\n'
+      sec "largest items in \$HOME (depth 1, 15s cap)"
+      runto 15 du -d1 -h "$HOME" 2>/dev/null | sort -rh | head -10 | sed 's/^/    /' || printf '    (timed out — too many files)\n'
+      ;;
+    net)
+      gather_hw; gather_net; header; rows | grep ' NET '
+      sec "interfaces with IPv4"; ifconfig 2>/dev/null | awk '/^[a-z]/{i=$1} /inet /{print i, $2}' | sed 's/^/    /'
+      sec "default route"; route -n get default 2>/dev/null | sed 's/^/    /' | head -8
+      sec "DNS resolvers"; scutil --dns 2>/dev/null | awk '/nameserver/{print $3}' | sort -u | sed 's/^/    /' | head -6
+      sec "listening TCP ports (top 15)"; netstat -an -p tcp 2>/dev/null | grep LISTEN | awk '{print $4}' | sort -u | sed 's/^/    /' | head -15
+      ;;
+    proc)
+      gather_hw; gather_proc; header; rows | grep ' PROC '
+      sec "top 12 by CPU"; ps -A -o pcpu=,rss=,pid=,comm= -r 2>/dev/null | head -12 | awk '{printf "    %5s%%  %7dMB  pid %-7s %s\n",$1,int($2/1024),$3,$4}'
+      sec "process count by user (top 8)"; ps -axo user= 2>/dev/null | sort | uniq -c | sort -rn | head -8 | sed 's/^/    /'
+      if (( PROC_ZOMBIE > 0 )); then sec "zombies"; ps -axo pid=,ppid=,stat=,comm= 2>/dev/null | awk '$3 ~ /^Z/' | sed 's/^/    /'; fi
+      ;;
+    power)
+      gather_hw; gather_power; header; rows | grep ' PWR '
+      sec "battery / power"; pmset -g batt 2>/dev/null | sed 's/^/    /'
+      if [[ "$PWR_BATT" == present ]]; then
+        sec "battery health"; runto 6 system_profiler SPPowerDataType 2>/dev/null | awk '/Cycle Count|Condition|Maximum Capacity|Full Charge/' | sed 's/^ */    /'
+      fi
+      sec "thermal"; pmset -g therm 2>/dev/null | sed 's/^/    /' | head -8 || printf '    nominal\n'
+      sec "sleep assertions"; pmset -g assertions 2>/dev/null | grep -iE 'PreventUserIdle|PreventSystem|named:' | sed 's/^/    /' | head -12
+      ;;
+    logs)
+      gather_hw; gather_logs; header; rows | grep ' LOGS '
+      sec "recent crash reports (last 24h)"
+      find "$HOME/Library/Logs/DiagnosticReports" /Library/Logs/DiagnosticReports -maxdepth 1 -type f \( -name '*.ips' -o -name '*.crash' \) -mtime -1 2>/dev/null | xargs -I{} basename {} 2>/dev/null | sed 's/^/    /' | head -15 || printf '    (none)\n'
+      sec "memory kills — jetsam/OOM (last 6h)"
+      runto 8 log show --predicate '(eventMessage CONTAINS[c] "jetsam" OR eventMessage CONTAINS "memorystatus") AND eventMessage CONTAINS[c] "kill"' --last 6h --style compact 2>/dev/null | grep -ivE 'noninteractively|Ignoring jetsam update|Set jetsam priority' | tail -12 | sed 's/^/    /' || printf '    (none / needs sudo)\n'
+      sec "recent shutdown causes"; pmset -g log 2>/dev/null | grep -i 'shutdown cause' | tail -5 | sed 's/^/    /'
+      ;;
+    hw)
+      gather_hw; header
+      sec "hardware"; runto 6 system_profiler SPHardwareDataType 2>/dev/null | sed -E 's/^ {6}/    /' | grep -vE '^\s*$|^Hardware:' | head -16
+      sec "os"; sw_vers 2>/dev/null | sed 's/^/    /'
+      sec "uptime"; uptime 2>/dev/null | sed 's/^/    /'
+      ;;
+  esac
+  printf '\n'
+}
+
+# ── full-state snapshot (markdown + JSON) ───────────────────────────────
+cmd_snap() {
+  local quiet=0; [[ "${1:-}" == "--quiet" ]] && quiet=1
+  mkdir -p "$SNAP_DIR"
+  local stamp out jout
+  stamp="$(date -u +%Y-%m-%dT%H-%M-%SZ)"; out="$SNAP_DIR/sys-$stamp.md"; jout="${out%.md}.json"
+  gather_all
+  {
+    header
+    rows
+    printf '  ──────────────────────────────────────────────────────────────\n'
+    printf '  verdict: %s %s\n' "$(glyph "$WORST")" "$(sevword "$WORST")"
+  } > "$out"
+  jq -n \
+    --arg ts "$stamp" --arg chip "$HW_CHIP" --argjson ram "${HW_RAM:-0}" --arg os "$HW_OS" --arg up "$HW_UP" \
+    --argjson worst "$WORST" \
+    --argjson mem_free "${MEM_FREE:-0}" --arg swap_used "${MEM_SWU:-0}" --arg swap_tot "${MEM_SWT:-0}" --argjson mem_sev "$MEM_SEV" \
+    --arg load1 "${CPU_L1:-0}" --argjson ncpu "${NCPU:-1}" --arg cpu_ratio "${CPU_RATIO:-0}" --argjson throttle "${CPU_THR:-100}" --argjson cpu_sev "$CPU_SEV" \
+    --argjson disk_pct "${DISK_PCT:-0}" --argjson snaps "${DISK_SNAPS:-0}" --argjson disk_sev "$DISK_SEV" \
+    --argjson online "$NET_ONLINE" --argjson listening "${NET_LISTEN:-0}" --arg dns "${NET_DNS:-}" --argjson net_sev "$NET_SEV" \
+    --argjson procs "${PROC_TOTAL:-0}" --argjson zombie "${PROC_ZOMBIE:-0}" --argjson runaway "${PROC_RUNAWAY:-0}" --argjson proc_sev "$PROC_SEV" \
+    --arg batt "${PWR_PCT:-}" --arg pstate "${PWR_STATE:-}" --arg thermal "$PWR_THERMW" --argjson assertions "${PWR_ASSERT:-0}" --argjson pwr_sev "$PWR_SEV" \
+    --argjson crash "${LOG_CRASH:-0}" --argjson panic "${LOG_PANIC:-0}" --argjson jetsam "${LOG_JETSAM:-0}" --argjson log_sev "$LOG_SEV" \
+    '{timestamp:$ts, host:{chip:$chip, ram_gb:$ram, os:$os, uptime:$up}, worst_sev:$worst,
+      mem:{free_pct:$mem_free, swap_used_mb:($swap_used|tonumber? //0), swap_total_mb:($swap_tot|tonumber? //0), sev:$mem_sev},
+      cpu:{load1:($load1|tonumber? //0), ncpu:$ncpu, per_core:($cpu_ratio|tonumber? //0), throttle_pct:$throttle, sev:$cpu_sev},
+      disk:{used_pct:$disk_pct, apfs_snapshots:$snaps, sev:$disk_sev},
+      net:{online:($online==1), listening:$listening, dns:$dns, sev:$net_sev},
+      proc:{total:$procs, zombie:$zombie, runaway:$runaway, sev:$proc_sev},
+      power:{battery_pct:($batt|tonumber? //null), state:$pstate, thermal:$thermal, assertions:$assertions, sev:$pwr_sev},
+      logs:{crash_24h:$crash, panic_7d:$panic, jetsam_6h:$jetsam, sev:$log_sev}}' > "$jout" 2>/dev/null
+  if (( quiet )); then echo "$jout"; else
+    cat "$out"; printf '\n  snapshot: %s\n  json:     %s\n\n' "$out" "$jout"
+  fi
+}
+
+# ── reconcile two full snapshots ────────────────────────────────────────
+nth() { ls -1t "$SNAP_DIR"/sys-*.json 2>/dev/null | sed -n "${1}p"; }
+cmd_reconcile() {
+  local old new
+  if [[ $# -ge 2 ]]; then old="$1"; new="$2"; else new="$(nth 1)"; old="$(nth 2)"; fi
+  [[ -f "${old:-}" && -f "${new:-}" ]] || { echo "sysdiag: need two snapshots — run 'sysdiag snap' twice over time" >&2; exit 1; }
+  printf '\n  sysdiag reconcile — delta is the finding\n  OLD: %s\n  NEW: %s\n\n' "$(jq -r .timestamp "$old")" "$(jq -r .timestamp "$new")"
+  printf '  %-20s %12s %12s   %s\n  %s\n' metric old new verdict "$(printf '%.0s─' {1..62})"
+  drow() {
+    local label="$1" path="$2" dir="$3" o n v
+    o="$(jq -r "$path // 0" "$old")"; n="$(jq -r "$path // 0" "$new")"
+    if awk "BEGIN{exit !($n==$o)}" 2>/dev/null; then v="stable"
+    elif [[ "$dir" == up ]]; then awk "BEGIN{exit !($n>$o)}" && v="↑ improved" || v="↓ worse"
+    else awk "BEGIN{exit !($n<$o)}" && v="↓ improved" || v="↑ worse"; fi
+    printf '  %-20s %12s %12s   %s\n' "$label" "$o" "$n" "$v"
+  }
+  drow "mem_free_pct"  ".mem.free_pct"     up
+  drow "cpu_per_core"  ".cpu.per_core"     down
+  drow "cpu_throttle"  ".cpu.throttle_pct" up
+  drow "disk_used_pct" ".disk.used_pct"    down
+  drow "procs"         ".proc.total"       down
+  drow "zombies"       ".proc.zombie"      down
+  drow "runaway"       ".proc.runaway"     down
+  drow "listening"     ".net.listening"    down
+  drow "crash_24h"     ".logs.crash_24h"   down
+  drow "jetsam_6h"     ".logs.jetsam_6h"   down
+  drow "worst_sev"     ".worst_sev"        down
+  printf '\n  (free%%/throttle up = better; everything else down = better.)\n\n'
+}
+
+cmd_watch() {
+  local thresh="${1:-25}" free
+  free="$(memory_pressure 2>/dev/null | awk -F': ' '/free percentage/{gsub(/[^0-9]/,"",$2);print $2+0}')"
+  [[ -z "$free" ]] && exit 0
+  (( free < thresh )) && printf '\033[33m⚠ memory free %s%% (< %s%%) — run `sysdiag snap` to freeze this episode\033[0m\n' "$free" "$thresh"
+  exit 0
+}
+
+cmd_list() {
+  local n; n="$(ls -1 "$SNAP_DIR"/sys-*.json 2>/dev/null | wc -l | tr -d ' ')"
+  printf '\n  %s full snapshot(s) in %s\n\n' "$n" "$SNAP_DIR"
+  ls -1t "$SNAP_DIR"/sys-*.json 2>/dev/null | while read -r f; do
+    printf '  %s  %s %s  (mem %s%% · cpu %s/core · disk %s%%)\n' \
+      "$(jq -r .timestamp "$f")" "$(glyph "$(jq -r .worst_sev "$f")")" "$(sevword "$(jq -r .worst_sev "$f")")" \
+      "$(jq -r .mem.free_pct "$f")" "$(jq -r .cpu.per_core "$f")" "$(jq -r .disk.used_pct "$f")"
+  done; printf '\n'
+}
+
+cmd_help() { sed -n '2,33p' "$0" | sed 's/^# \{0,1\}//'; }
+
+case "${1:-doctor}" in
+  doctor|all)               cmd_doctor ;;
+  mem|cpu|disk|net|proc|power|logs|hw) detail "$1" ;;
+  snap)      shift; cmd_snap "$@" ;;
+  reconcile) shift; cmd_reconcile "$@" ;;
+  watch)     shift; cmd_watch "$@" ;;
+  list)      cmd_list ;;
+  help|-h|--help) cmd_help ;;
+  *) echo "sysdiag: unknown command '$1' (try: sysdiag help)" >&2; exit 1 ;;
+esac

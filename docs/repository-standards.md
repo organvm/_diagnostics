@@ -9,8 +9,8 @@ mechanically checked by [`tools/standards-lint.sh`](../tools/standards-lint.sh)
 The root directory is a lobby. It contains **only** architectural pillars and the
 files a stranger needs first:
 
-- `README.md`, `.gitignore` (and `LICENSE` if the repo is ever licensed)
-- the pillar directories: `docs/  inquiry/  assessments/  captures/  tools/  .github/`
+- `README.md`, `.gitignore`, `LICENSE`
+- the pillar directories: `bin/  docs/  inquiry/  assessments/  captures/  tools/  .github/`
 
 No loose implementation files, no scratch output, no captures in the root. Anything
 else at top level is a violation. Detail lives one level down.
@@ -32,6 +32,7 @@ is neither.
 
 | Content | Destination |
 |---|---|
+| Diagnostic CLIs (the product) | `bin/` — source of record; deployed onto `PATH` at `~/.local/bin/` |
 | Evergreen documentation | `docs/` |
 | Dated analysis reports | `assessments/YYYY-MM-DD-*.md` |
 | The design inquiry | `inquiry/lenses/` (corpus) + `inquiry/report/` (visualization) |

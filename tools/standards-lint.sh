@@ -12,7 +12,7 @@ fail=0
 note() { printf '  \xe2\x9c\x97 %s\n' "$*"; fail=1; }
 
 # Rule 1 — minimal root: only these top-level entries are allowed.
-allowed='|README.md|LICENSE|.gitignore|.github|assessments|captures|docs|inquiry|tools|'
+allowed='|README.md|LICENSE|.gitignore|.github|assessments|bin|captures|docs|inquiry|tools|'
 echo "→ minimal root (allowlist)"
 while IFS= read -r top; do
   [ -z "$top" ] && continue
