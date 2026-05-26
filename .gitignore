@@ -1,18 +1,25 @@
-# large/binary diagnostic captures — regenerable, do not track
+# ─────────────────────────────────────────────────────────────
+# _diagnostics — what never enters version control
+# ─────────────────────────────────────────────────────────────
+
+# Raw diagnostic captures: regenerable, often huge/binary. The landing zone.
+captures/raw/
+
+# Capture blob types — ignored anywhere, as defense-in-depth.
 *.heapsnapshot
-*.zip
-*.tiff
-*.png
 *.pcap
 *.diag
 *.db
 *.db-wal
 claude-netlog-*.json
-console-*.log
 claude.ai-*.log
-extract/
-sysdiagnose-*/extract/
-**/extract/
+console-*.log
+Claude-logs-*.zip
+claude-diagnostic-*.zip
+sysdiagnose-*/
 
-# OpenCode audit (user already has it; contains token-pattern docs that trip the scanner)
-sysdiagnose-2026-05-21/
+# OS / editor noise
+.DS_Store
+
+# Node (the inquiry report keeps its own .gitignore too)
+node_modules/
