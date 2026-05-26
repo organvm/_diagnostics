@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# archive-snapshot — on-demand encrypted snapshot of local-only unique data to a remote.
+# Reboot-preservation per REMOTE_IS_CANONICAL / CACHE_IS_DISPOSABLE.
+# Prereq (one-time, needs your Backblaze B2 keys):
+#   brew install kopia
+#   kopia repository create b2 --bucket="$KOPIA_B2_BUCKET" --key-id="$B2_KEY_ID" --key="$B2_APP_KEY"
+# Repo password (= encryption key) lives in 1Password; export KOPIA_PASSWORD before running, or let kopia prompt.
+set -euo pipefail
+command -v kopia >/dev/null || { echo "kopia not installed — run: brew install kopia"; exit 1; }
+
+# Targets: sensitive local-only unique data (NOT regenerable binaries, NOT bulk re-exportable).
+TARGETS=(
+  "$HOME/Code/prompt-registry-archive"   # 70MB prompt-atoms snapshot (24,599 atoms)
+  "$HOME/Code/intake"                    # unique intake text (.gitignore excludes bulk)
+  "$HOME/Workspace/_diagnostics"         # diagnostic reports + reviews (text only)
+)
+echo "kopia repo status:"; kopia repository status >/dev/null 2>&1 || { echo "no repo connected — run the one-time 'kopia repository create b2 ...' first"; exit 1; }
+for t in "${TARGETS[@]}"; do
+  [ -e "$t" ] && { echo "snapshot: $t"; kopia snapshot create "$t"; }
+done
+echo "--- snapshots ---"; kopia snapshot list --max-results 10

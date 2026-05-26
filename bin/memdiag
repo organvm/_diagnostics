@@ -1,0 +1,230 @@
+#!/usr/bin/env bash
+# memdiag — the diagnostics LOOP, made executable.
+#
+# Derived from the 2026-05-23 synthesis of the 2026-05-21 memory crisis. That
+# autopsy nearly issued kills against processes reaped 48h earlier; the lesson
+# became a design: a diagnostics system is a closed, read-only, constraint-fitted
+# loop whose primary act is *reconciliation against live state*, not report-reading.
+#
+#   SENSE ──► STRATIFY ──► RECONCILE ──► LOCATE ──► CLOSE ──┐
+#   (snap)    (verdict)    (reconcile)   (verdict)  (close)  │
+#     ▲──────────────────────────────────────────────────────┘
+#
+# HARD CONSTRAINT (Rule #9): NO LaunchAgent, NO daemon. Every subcommand is
+# on-demand and read-only. `watch` is a sub-millisecond sampler meant to be
+# called from a shell prompt hook — it spawns nothing that outlives the call.
+#
+# Subcommands:
+#   memdiag snap                 SENSE     — capture live (md + json sidecar)
+#   memdiag verdict [json]       STRATIFY+ — health classification + contributor
+#                                LOCATE      analysis (default: newest snapshot)
+#   memdiag reconcile [old new]  RECONCILE — auto delta table (default: 2 newest)
+#   memdiag loop                 full pass — snap, then verdict on the result
+#   memdiag watch [threshold]    trigger   — print a nudge iff free% < threshold
+#                                            (default 25); silent when healthy
+#   memdiag close [id]           CLOSE     — emit an IRF row + behavioral reminder
+#   memdiag list                           — list captured snapshots
+#   memdiag help
+set -euo pipefail
+
+SNAP_DIR="$HOME/.claude/projects/-Users-4jp-Workspace--diagnostics/snapshots"
+SNAP_BIN="$HOME/.local/bin/mem-pressure-snapshot"
+
+# STRATIFY thresholds — the trustworthy headline metric is mem_free_pct.
+HEALTHY_FLOOR=40   # >= this  => HEALTHY
+MODERATE_FLOOR=20  # >= this  => MODERATE ; below => PRESSURE
+DISK_WARN=80
+DISK_CRIT=90
+
+die() { printf 'memdiag: %s\n' "$*" >&2; exit 1; }
+have() { command -v "$1" >/dev/null 2>&1; }
+have jq || die "jq is required (brew install jq)"
+
+newest_json() { ls -1t "$SNAP_DIR"/mem-*.json 2>/dev/null | head -1; }
+nth_json()    { ls -1t "$SNAP_DIR"/mem-*.json 2>/dev/null | sed -n "${1}p"; }
+
+# ---------------------------------------------------------------- SENSE
+cmd_snap() { exec "$SNAP_BIN" "$@"; }
+
+# ------------------------------------------------- STRATIFY + LOCATE
+cmd_verdict() {
+  local j="${1:-$(newest_json)}"
+  [[ -n "$j" && -f "$j" ]] || die "no snapshot json found — run 'memdiag snap' first"
+
+  # Pull fields once.
+  local free swap_u swap_t disk load ram ts ipy ollama n_ai top0_cmd top0_rss
+  free="$(jq -r '.mem_free_pct'   "$j")"
+  swap_u="$(jq -r '.swap_used_mb' "$j")"
+  swap_t="$(jq -r '.swap_total_mb' "$j")"
+  disk="$(jq -r '.disk_data_pct'  "$j")"
+  load="$(jq -r '.load_1m'        "$j")"
+  ram="$(jq -r '.ram_gb'          "$j")"
+  ts="$(jq -r '.timestamp'        "$j")"
+  ipy="$(jq -r '.procs.ipykernel' "$j")"
+  ollama="$(jq -r '.procs.ollama' "$j")"
+  n_ai="$(jq -r '.ai_apps|length' "$j")"
+  top0_cmd="$(jq -r '.top_rss[0].cmd // "?"'      "$j")"
+  top0_rss="$(jq -r '.top_rss[0].rss_mb // 0'     "$j")"
+
+  # STRATIFY: classify on the trustworthy metric only.
+  local state symbol
+  if   (( free >= HEALTHY_FLOOR ));  then state="HEALTHY";  symbol="✓"
+  elif (( free >= MODERATE_FLOOR )); then state="MODERATE"; symbol="△"
+  else                                    state="PRESSURE"; symbol="✗"
+  fi
+
+  # LOCATE: localized (one dominant process) vs cumulative co-residency.
+  # used_mb ≈ ram*1024*(1 - free/100). If top process holds >40% of used, it
+  # is plausibly "the" cause; otherwise pressure is additive (the 05-21 mode).
+  local used_mb shape
+  used_mb=$(( ram * 1024 * (100 - free) / 100 ))
+  if (( used_mb > 0 )) && (( top0_rss * 100 / used_mb > 40 )); then
+    shape="localized — '$top0_cmd' dominates (${top0_rss}MB of ~${used_mb}MB used)"
+  else
+    shape="cumulative co-residency — no single process dominates (top: '$top0_cmd' ${top0_rss}MB)"
+  fi
+
+  printf '\n  memdiag verdict — %s\n' "$ts"
+  printf '  ───────────────────────────────────────────────\n'
+  printf '  %s  STATE: %-8s  (memory free %s%%  — the trustworthy headline)\n' "$symbol" "$state" "$free"
+  printf '     shape: %s\n' "$shape"
+  printf '     load1: %s   swap: %s/%sMB (unstable signal — informational)\n' "$load" "$swap_u" "$swap_t"
+  printf '     disk : %s%%  ram: %sGB\n' "$disk" "$ram"
+
+  # Contributor flags (the named, recurring findings).
+  local flags=0
+  printf '\n  contributors / standing findings:\n'
+  if (( ipy > 0 ));    then printf '     ⚠ FIND-001  %s ipykernel proc(s) — Jupyter zombies (expected 0)\n' "$ipy"; flags=1; fi
+  if (( ollama > 0 )); then printf '     ⚠ FIND-002  %s ollama proc(s) running (expected 0)\n' "$ollama"; flags=1; fi
+  if (( n_ai >= 3 ));  then printf '     ⚠ FIND-005  %s Electron AI apps co-resident — additive pressure on %sGB\n' "$n_ai" "$ram"; flags=1;
+  elif (( n_ai > 0 )); then printf '     · FIND-005  %s AI app(s) up (below co-residency concern)\n' "$n_ai"; fi
+  if   (( disk >= DISK_CRIT )); then printf '     ✗ DISK      %s%% — critical, reclaim now\n' "$disk"; flags=1;
+  elif (( disk >= DISK_WARN )); then printf '     △ DISK      %s%% — high, standing issue\n' "$disk"; flags=1; fi
+  (( flags == 0 )) && printf '     ✓ none active — no Jupyter/Ollama, AI co-residency below threshold, disk ok\n'
+
+  # CLOSE hint: only when the loop found something worth forwarding.
+  if [[ "$state" == "PRESSURE" ]] || (( flags == 1 && disk >= DISK_CRIT )); then
+    printf '\n  → loop-forward: this warrants CLOSE — run "memdiag close" for an IRF row.\n'
+  fi
+  printf '\n'
+}
+
+# ---------------------------------------------------------------- RECONCILE
+# The automation of the manual delta table from the 2026-05-23 synthesis.
+# The delta IS the finding (verify-against-now, memory rule #12).
+cmd_reconcile() {
+  local old new
+  if [[ $# -ge 2 ]]; then old="$1"; new="$2"; else
+    new="$(nth_json 1)"; old="$(nth_json 2)"
+  fi
+  [[ -n "${old:-}" && -f "${old:-}" ]] || die "need an older snapshot (have <2 captures?) — run 'memdiag snap' twice over time"
+  [[ -n "${new:-}" && -f "${new:-}" ]] || die "need a newer snapshot"
+
+  local ots nts
+  ots="$(jq -r '.timestamp' "$old")"; nts="$(jq -r '.timestamp' "$new")"
+  printf '\n  memdiag reconcile — delta is the finding\n'
+  printf '  OLD: %s\n  NEW: %s\n\n' "$ots" "$nts"
+  printf '  %-22s %12s %12s   %s\n' "metric" "old" "new" "verdict"
+  printf '  %s\n' "------------------------------------------------------------------"
+
+  # $1 label  $2 jqpath  $3 better-direction (up|down)  $4 unit
+  row() {
+    local label="$1" path="$2" dir="$3" unit="${4:-}"
+    local o n verdict delta
+    o="$(jq -r "$path // 0" "$old")"; n="$(jq -r "$path // 0" "$new")"
+    # integer-ish compare; fall back to string equality
+    delta="recovered"
+    if awk "BEGIN{exit !($n==$o)}" 2>/dev/null; then verdict="stable"
+    elif [[ "$dir" == up ]]; then
+      awk "BEGIN{exit !($n>$o)}" 2>/dev/null && verdict="↑ improved" || verdict="↓ worse"
+    else
+      awk "BEGIN{exit !($n<$o)}" 2>/dev/null && verdict="↓ improved" || verdict="↑ worse"
+    fi
+    printf '  %-22s %12s %12s   %s\n' "$label$unit" "$o" "$n" "$verdict"
+  }
+
+  row "mem_free_pct"   ".mem_free_pct"        up   "%"
+  row "swap_used_mb"   ".swap_used_mb"        down ""
+  row "disk_data_pct"  ".disk_data_pct"       down "%"
+  row "load_1m"        ".load_1m"             down ""
+  row "ai_apps"        ".ai_apps|length"      down ""
+  row "ipykernel"      ".procs.ipykernel"     down ""
+  row "ollama"         ".procs.ollama"        down ""
+  row "claude_procs"   ".procs.claude"        down ""
+  printf '\n  (free%% up = better; everything else down = better. swap is an unstable\n'
+  printf '   signal — read mem_free_pct as the headline.)\n\n'
+}
+
+# ---------------------------------------------------------------- full pass
+cmd_loop() {
+  "$SNAP_BIN" --quiet >/dev/null
+  cmd_verdict
+}
+
+# ---------------------------------------------------------------- trigger
+# Sub-millisecond. Prints a one-line nudge ONLY when below threshold, so it is
+# safe to call from a zsh precmd hook. Spawns nothing resident (Rule #9).
+cmd_watch() {
+  local thresh="${1:-25}" free
+  free="$(memory_pressure 2>/dev/null | awk -F': ' '/free percentage/{gsub(/[^0-9]/,"",$2); print $2+0}')"
+  [[ -z "$free" ]] && exit 0
+  if (( free < thresh )); then
+    printf '\033[33m⚠ memory free %s%% (< %s%%) — run `memdiag snap` to freeze this episode\033[0m\n' "$free" "$thresh"
+  fi
+  exit 0
+}
+
+# ---------------------------------------------------------------- CLOSE
+# Loop-forward sink: produce the artifacts that keep a diagnosis from dying as
+# a report — an IRF row stub + the behavioral forcing function.
+cmd_close() {
+  local id="${1:-IRF-SYS-XXX}" j ts free n_ai disk
+  j="$(newest_json)"
+  if [[ -n "$j" && -f "$j" ]]; then
+    ts="$(jq -r '.timestamp' "$j")"; free="$(jq -r '.mem_free_pct' "$j")"
+    n_ai="$(jq -r '.ai_apps|length' "$j")"; disk="$(jq -r '.disk_data_pct' "$j")"
+  else ts="(no snapshot)"; free="?"; n_ai="?"; disk="?"; fi
+  cat <<EOF
+
+  memdiag close — loop-forward artifacts (paste into the IRF)
+  ───────────────────────────────────────────────────────────
+  | $id | mem-pressure | OPEN | host memory margin on 16GB; \
+free=${free}% ai_apps=${n_ai} disk=${disk}% @ $ts. \
+Capture: $j. Mitigation: one heavy AI surface at a time. |
+
+  Behavioral forcing function (FIND-005):
+    • Treat 16GB as a budget, not a floor.
+    • One heavy AI desktop surface at a time — quit ChatGPT Atlas /
+      Antigravity / ChatGPT.app before heavy Claude Code / Codex work.
+    • The moment it feels slow:  memdiag snap   (record, don't reconstruct)
+
+  IRF lives at:
+    ~/Code/organvm/organvm-corpvs-testamentvm/INST-INDEX-RERUM-FACIENDARUM.md
+
+EOF
+}
+
+cmd_list() {
+  local n; n="$(ls -1 "$SNAP_DIR"/mem-*.json 2>/dev/null | wc -l | tr -d ' ')"
+  printf '\n  %s snapshot(s) in %s\n\n' "$n" "$SNAP_DIR"
+  ls -1t "$SNAP_DIR"/mem-*.json 2>/dev/null | while read -r f; do
+    printf '  %s  free=%s%%  ai=%s  disk=%s%%\n' \
+      "$(jq -r '.timestamp' "$f")" "$(jq -r '.mem_free_pct' "$f")" \
+      "$(jq -r '.ai_apps|length' "$f")" "$(jq -r '.disk_data_pct' "$f")"
+  done
+  printf '\n'
+}
+
+cmd_help() { sed -n '2,40p' "$0" | sed 's/^# \{0,1\}//'; }
+
+case "${1:-help}" in
+  snap)      shift; cmd_snap "$@" ;;
+  verdict)   shift; cmd_verdict "$@" ;;
+  reconcile) shift; cmd_reconcile "$@" ;;
+  loop)      shift; cmd_loop "$@" ;;
+  watch)     shift; cmd_watch "$@" ;;
+  close)     shift; cmd_close "$@" ;;
+  list)      shift; cmd_list "$@" ;;
+  help|-h|--help) cmd_help ;;
+  *) die "unknown subcommand '$1' (try: memdiag help)" ;;
+esac
