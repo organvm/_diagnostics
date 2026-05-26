@@ -1,0 +1,113 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# claude-health-check — read-only diagnostic for Claude Code entry-point sprawl.
+# Reports: CLI symlink target, all installed versions, Desktop-bundled version,
+# Antigravity IDE extension version, running claude processes by version, and
+# any divergence across the three entry points. No mutations.
+
+VERSIONS_DIR="$HOME/.local/share/claude/versions"
+CLI_SYMLINK="$HOME/.local/bin/claude"
+DESKTOP_BUNDLE_DIR="$HOME/Library/Application Support/Claude/claude-code"
+AGV_EXT_DIR="$HOME/.antigravity-ide/extensions"
+
+bold() { printf '\033[1m%s\033[0m\n' "$1"; }
+dim()  { printf '\033[2m%s\033[0m\n' "$1"; }
+
+bold "claude-health-check  $(date '+%Y-%m-%d %H:%M:%S %Z')"
+echo
+
+# --- CLI symlink ---
+bold "[1] CLI symlink"
+if [[ -L "$CLI_SYMLINK" ]]; then
+  target="$(readlink "$CLI_SYMLINK")"
+  cli_version="$(basename "$target")"
+  echo "  $CLI_SYMLINK -> $target"
+else
+  echo "  (missing) $CLI_SYMLINK"
+  cli_version=""
+fi
+echo
+
+# --- Installed versions ---
+bold "[2] Installed versions ($VERSIONS_DIR)"
+if [[ -d "$VERSIONS_DIR" ]]; then
+  total_bytes=0
+  while IFS= read -r -d '' f; do
+    sz=$(stat -f%z "$f")
+    total_bytes=$((total_bytes + sz))
+    mtime=$(stat -f%Sm -t '%Y-%m-%d %H:%M' "$f")
+    name=$(basename "$f")
+    marker=""
+    if [[ "$name" == "$cli_version" ]]; then marker="  <- ACTIVE"; fi
+    printf "  %-12s  %7.1f MiB  %s%s\n" "$name" "$(echo "scale=1; $sz/1048576" | bc)" "$mtime" "$marker"
+  done < <(find "$VERSIONS_DIR" -mindepth 1 -maxdepth 1 -print0 | sort -z)
+  printf "  %-12s  %7.1f MiB total\n" "" "$(echo "scale=1; $total_bytes/1048576" | bc)"
+else
+  echo "  (missing)"
+fi
+echo
+
+# --- Claude Desktop bundled CLI ---
+bold "[3] Claude Desktop bundled claude-code"
+if [[ -d "$DESKTOP_BUNDLE_DIR" ]]; then
+  desktop_versions=$(find "$DESKTOP_BUNDLE_DIR" -mindepth 1 -maxdepth 1 -type d -exec basename {} \; | sort)
+  if [[ -n "$desktop_versions" ]]; then
+    echo "$desktop_versions" | sed 's/^/  /'
+  else
+    echo "  (none)"
+  fi
+else
+  echo "  (no Desktop integration directory)"
+  desktop_versions=""
+fi
+echo
+
+# --- Antigravity IDE extension ---
+bold "[4] Antigravity IDE bundled claude-code"
+if [[ -d "$AGV_EXT_DIR" ]]; then
+  agv_match=$(find "$AGV_EXT_DIR" -mindepth 1 -maxdepth 1 -type d -name 'anthropic.claude-code-*' -exec basename {} \; | sort)
+  if [[ -n "$agv_match" ]]; then
+    echo "$agv_match" | sed 's/^/  /'
+  else
+    echo "  (no anthropic.claude-code-* extension)"
+    agv_match=""
+  fi
+else
+  echo "  (no Antigravity extensions directory)"
+  agv_match=""
+fi
+echo
+
+# --- Running processes ---
+bold "[5] Running claude processes (by binary path)"
+ps_out=$(ps -axo pid,command | grep -E '/claude( |$)' | grep -v grep || true)
+if [[ -z "$ps_out" ]]; then
+  echo "  (none)"
+else
+  echo "$ps_out" | awk '{
+    pid=$1; bin=$2;
+    # Truncate args after the binary path
+    print "  PID " pid "  " bin
+  }' | sort -u
+fi
+echo
+
+# --- Divergence summary ---
+bold "[6] Divergence"
+agv_version=""
+if [[ -n "$agv_match" ]]; then
+  # Extract version from "anthropic.claude-code-X.Y.Z-darwin-arm64"
+  agv_version=$(echo "$agv_match" | head -1 | sed -E 's/^anthropic\.claude-code-([0-9.]+)-.*/\1/')
+fi
+desktop_top=$(echo "$desktop_versions" | tail -1)
+
+echo "  CLI:        ${cli_version:-(none)}"
+echo "  Desktop:    ${desktop_top:-(none)}"
+echo "  Antigravity:${agv_version:-(none)}"
+if [[ -n "$cli_version" && -n "$agv_version" && "$cli_version" != "$agv_version" ]]; then
+  echo "  WARN: CLI != Antigravity"
+fi
+if [[ -n "$cli_version" && -n "$desktop_top" && "$cli_version" != "$desktop_top" ]]; then
+  echo "  NOTE: CLI != Desktop (Desktop bundles its own; updated via Desktop, not via 'claude install')"
+fi

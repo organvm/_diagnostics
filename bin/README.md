@@ -10,6 +10,7 @@ LaunchAgents (Rule #9) — every tool runs once when invoked and exits.
 | `mem-pressure-snapshot` | SENSE primitive: capture live memory state to markdown + JSON sidecar. | `mem-pressure-snapshot` |
 | `memdiag-watch.zsh` | Opt-in, non-resident zsh prompt hook that nudges only when memory is low. Sourced, not executed. | `source memdiag-watch.zsh` |
 | `archive-snapshot` | On-demand encrypted snapshot of local-only data to a remote (Kopia/B2), per `REMOTE_IS_CANONICAL`. | `archive-snapshot` |
+| `claude-health-check` | Read-only diagnostic for Claude Code entry-point sprawl: CLI symlink target, installed versions, Desktop/IDE versions, running processes, and any divergence. | `claude-health-check` |
 
 See [`../docs/diagnostics-loop.md`](../docs/diagnostics-loop.md) for the design law
 these tools share (the SENSE→STRATIFY→RECONCILE→LOCATE→CLOSE loop).
