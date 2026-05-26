@@ -1,0 +1,17 @@
+version: 2
+updates:
+  # The inquiry visualization (React/Vite) — keep its npm deps patched.
+  - package-ecosystem: npm
+    directory: "/inquiry/report"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: chore
+  # GitHub Actions used by the standards workflow.
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: chore
